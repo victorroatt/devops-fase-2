@@ -41,7 +41,7 @@ jobs:
       - name: Deploy no ECS
         run: |
           aws ecs update-service \
-            --cluster nome-do-cluster-ecs \        # 🔁 Substitua pelo nome real do seu cluster ECS
-            --service nome-do-servico-ecs \        # 🔁 Substitua pelo nome real do seu serviço ECS
+            --cluster alert-fish-94oodo \        
+            --service devops-fase-2-service-cnnuy65p \        
             --force-new-deployment \
             --region $AWS_REGION

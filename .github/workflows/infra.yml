@@ -1,0 +1,57 @@
+name: Deploy Infra e Frontend no S3
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    name: Deploy Infraestrutura e Upload Frontend
+    runs-on: ubuntu-latest
+
+    env:
+      AWS_REGION: us-east-2
+      BUCKET_NAME: ${{ secrets.AWS_S3_BUCKET }}
+
+    steps:
+      - name: Checkout do código
+        uses: actions/checkout@v3
+
+      - name: Instalar Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.7.5
+
+      - name: Configurar credenciais AWS
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Terraform Init
+        working-directory: infra
+        run: terraform init
+
+      - name: Terraform Validate
+        working-directory: infra
+        run: terraform validate
+
+      - name: Importar bucket S3 (se necessário)
+        working-directory: infra
+        run: |
+          terraform import aws_s3_bucket.static_site ${{ env.BUCKET_NAME }} || echo "Bucket já importado ou não existe"
+
+      - name: Terraform Apply
+        working-directory: infra
+        run: terraform apply -auto-approve -var="bucket_name=${{ env.BUCKET_NAME }}"
+
+      - name: Upload Frontend para S3
+        run: |
+          aws s3 sync ./frontend s3://$BUCKET_NAME
+
+      - name: URL do site S3
+        run: |
+          echo "✅ Site disponível em:"
+          echo "http://${{ env.BUCKET_NAME }}.s3-website-${{ env.AWS_REGION }}.amazonaws.com"
